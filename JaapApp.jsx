@@ -710,10 +710,12 @@
     );
     const recognitionRef = useRef(null);
     const autoContinueRef = useRef(autoContinue);
+    const onSuccessRef = useRef(onSuccess);
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    // Keep ref in sync so callbacks see latest value
+    // Keep refs in sync so async callbacks always see latest values
     useEffect(() => { autoContinueRef.current = autoContinue; }, [autoContinue]);
+    useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
 
     const toggleAutoContinue = () => {
       const next = !autoContinue;
@@ -795,7 +797,7 @@
           const hit = alts.find(a => checkMatch(a.transcript));
           if (hit) {
             cellFeedback(0); // Voice mode cell feedback
-            onSuccess(null);
+            onSuccessRef.current(null);
             // Auto-continue: restart listening after a short delay
             if (autoContinueRef.current) {
               setTimeout(() => startListening(), 600);
