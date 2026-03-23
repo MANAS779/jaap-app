@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jaap-app-v5';
+const CACHE_NAME = 'jaap-app-v6';
 
 // All resources needed for offline use
 const PRECACHE_URLS = [
@@ -44,9 +44,10 @@ self.addEventListener('fetch', (event) => {
   const isAppFile = url.origin === self.location.origin;
 
   if (isAppFile) {
-    // Network-first: always try fresh copy, fall back to cache
+    // Network-first: bypass HTTP cache to always get truly fresh copy
+    const freshRequest = new Request(event.request, { cache: 'no-cache' });
     event.respondWith(
-      fetch(event.request).then((networkResponse) => {
+      fetch(freshRequest).then((networkResponse) => {
         if (event.request.method === 'GET' && networkResponse.status === 200) {
           const clone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
