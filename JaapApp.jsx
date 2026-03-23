@@ -312,6 +312,7 @@
 
   // ==================== SETTINGS SHEET ====================
   const SettingsSheet = ({ open, onClose, focusMode, onFocusModeChange, doodleMode, onDoodleModeChange, voiceMode, onVoiceModeChange, customImage, onImageChange, soundMuted, onSoundMutedChange }) => {
+    const isDesktop = useIsDesktop();
     const [imgDraft, setImgDraft] = useState(customImage);
     const [showImgInput, setShowImgInput] = useState(false);
     const fileInputRef = useRef(null);
@@ -412,14 +413,16 @@
             </button>
           </div>
           {showImgInput && (
-            <div style={settingsStyles.imgInputGroup}>
-              <input style={settingsStyles.imgInput} type="url"
-                placeholder="Image URL यहाँ paste करें..." value={imgDraft}
-                onChange={e => setImgDraft(e.target.value)} />
-              <button style={settingsStyles.applyBtn}
-                onClick={() => { if (imgDraft.trim()) { onImageChange(imgDraft.trim()); setShowImgInput(false); } }}>
-                लगाएं
-              </button>
+            <div style={{ ...settingsStyles.imgInputGroup, ...(!isDesktop ? { flexDirection: 'column' } : {}) }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input style={settingsStyles.imgInput} type="url"
+                  placeholder="Image URL यहाँ paste करें..." value={imgDraft}
+                  onChange={e => setImgDraft(e.target.value)} />
+                <button style={settingsStyles.applyBtn}
+                  onClick={() => { if (imgDraft.trim()) { onImageChange(imgDraft.trim()); setShowImgInput(false); } }}>
+                  लगाएं
+                </button>
+              </div>
               <span style={{ textAlign: 'center', fontSize: '12px', color: '#999', margin: '4px 0' }}>या</span>
               <button style={{ ...settingsStyles.applyBtn, background: 'linear-gradient(180deg, #E1BEE7 0%, #CE93D8 100%)', color: '#4A148C' }}
                 onClick={() => fileInputRef.current?.click()}>
