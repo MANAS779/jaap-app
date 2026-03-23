@@ -1,10 +1,11 @@
-const CACHE_NAME = 'jaap-app-v1';
+const CACHE_NAME = 'jaap-app-v2';
 
 // All resources needed for offline use
 const PRECACHE_URLS = [
   './',
   './index.html',
   './JaapApp.jsx',
+  './default.jpg',
   './manifest.json',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
@@ -37,29 +38,39 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: serve from cache first, fall back to network, then cache the response
+// Fetch: network-first for app files, cache-first for CDN libs
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
-        // Cache successful GET responses for future offline use
+  const url = new URL(event.request.url);
+  const isAppFile = url.origin === self.location.origin;
+
+  if (isAppFile) {
+    // Network-first: always try fresh copy, fall back to cache
+    event.respondWith(
+      fetch(event.request).then((networkResponse) => {
         if (event.request.method === 'GET' && networkResponse.status === 200) {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return networkResponse;
-      }).catch(() => {
-        // If both cache and network fail, return a basic offline page
-        if (event.request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-      });
-    })
-  );
+      }).catch(() => caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        if (event.request.mode === 'navigate') return caches.match('./index.html');
+      }))
+    );
+  } else {
+    // Cache-first for CDN resources (React, Babel, fonts)
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((networkResponse) => {
+          if (event.request.method === 'GET' && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        });
+      })
+    );
+  }
 });
 
