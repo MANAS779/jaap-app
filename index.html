@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="नाम जाप" />
+  <meta name="theme-color" content="#FF8F00" />
+  <meta name="description" content="श्री हरिवंश जाप और राधा जाप — 108 माला" />
+
+  <title>🙏 नाम जाप</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Apple Touch Icon (inline SVG fallback — works without an image file) -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%23FF8F00'/><text x='96' y='130' font-size='120' text-anchor='middle' fill='white'>🙏</text></svg>" />
+
+  <style>
+    /* Splash / loading state */
+    html, body { margin: 0; padding: 0; height: 100%; background: #FFF8E1; overflow: hidden; }
+    #root { height: 100%; }
+    #loading {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100%; gap: 16px; font-family: 'Tiro Devanagari Sanskrit', sans-serif;
+    }
+    #loading .emoji { font-size: 64px; animation: pulse 1.5s ease-in-out infinite; }
+    #loading .text  { font-size: 20px; color: #6D4C41; }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+    /* Safe-area padding for notched phones */
+    @supports (padding-top: env(safe-area-inset-top)) {
+      body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+    }
+  </style>
+
+  <!-- React 18 (production) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel standalone for JSX transform -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root">
+    <div id="loading">
+      <div class="emoji">🙏</div>
+      <div class="text">नाम जाप लोड हो रहा है...</div>
+    </div>
+  </div>
+
+  <!-- App source (JSX, transformed by Babel in-browser) -->
+  <script type="text/babel" src="JaapApp.jsx"></script>
+
+  <!-- Mount the app -->
+  <script type="text/babel">
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(JaapApp));
+  </script>
+
+  <!-- Register Service Worker for offline support -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.log('SW registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
+
