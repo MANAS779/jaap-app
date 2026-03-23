@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jaap-app-v3';
+const CACHE_NAME = 'jaap-app-v4';
 
 // All resources needed for offline use
 const PRECACHE_URLS = [
