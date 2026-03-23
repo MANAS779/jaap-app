@@ -1,4 +1,4 @@
-  import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+  const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
   // ==================== GLOBAL STYLES (animations, pseudo-selectors) ====================
   const GlobalStyles = () => (
@@ -1831,4 +1831,4 @@
     }
   };
 
-  export default App;
+  window.JaapApp = App;
