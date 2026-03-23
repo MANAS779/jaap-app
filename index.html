@@ -58,13 +58,22 @@
     root.render(React.createElement(JaapApp));
   </script>
 
-  <!-- Register Service Worker for offline support -->
+  <!-- Register Service Worker with auto-update -->
   <script>
     if ('serviceWorker' in navigator) {
+      let refreshing = false;
+      // Auto-reload when a new SW takes control
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) { refreshing = true; window.location.reload(); }
+      });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('SW registered:', reg.scope))
-          .catch(err => console.log('SW registration failed:', err));
+        navigator.serviceWorker.register('sw.js').then(reg => {
+          console.log('SW registered:', reg.scope);
+          // Check for updates immediately on every page load
+          reg.update();
+          // Also check for updates periodically (every 60s)
+          setInterval(() => reg.update(), 60 * 1000);
+        }).catch(err => console.log('SW registration failed:', err));
       });
     }
   </script>
