@@ -69,10 +69,8 @@
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('sw.js').then(reg => {
           console.log('SW registered:', reg.scope);
-          // Check for updates immediately on every page load
+          // Check for updates on page load / refresh
           reg.update();
-          // Also check for updates periodically (every 60s)
-          setInterval(() => reg.update(), 60 * 1000);
         }).catch(err => console.log('SW registration failed:', err));
       });
     }
