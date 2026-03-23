@@ -1023,7 +1023,7 @@
     const fHeader    = focusMode ? { background: '#1A1A1A', color: '#E0E0E0', boxShadow: 'none' } : {};
     const fTitle     = focusMode ? { color: '#E0E0E0' } : {};
     const fMenuBtn   = focusMode ? { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#999' } : {};
-    const fSubtitle  = focusMode ? { color: '#777', fontWeight: '400' } : {};
+
     const fBtn       = focusMode ? { background: '#1E1E1E', border: '1px solid #333', boxShadow: 'none', color: '#CCC', transition: 'opacity 0.1s ease' } : {};
     const fBtnSec    = focusMode ? { background: '#1E1E1E', border: '1px solid #333', boxShadow: 'none', color: '#CCC' } : {};
 
@@ -1032,7 +1032,7 @@
     const dHeader    = doodleMode ? { background: '#5D4037', boxShadow: '0 3px 8px rgba(93,64,55,0.3)' } : {};
     const dTitle     = doodleMode ? { color: '#FFF8E1' } : {};
     const dMenuBtn   = doodleMode ? { background: 'rgba(255,255,255,0.15)', border: '1.5px dashed rgba(255,255,255,0.45)', color: '#FFF8E1' } : {};
-    const dSubtitle  = doodleMode ? { color: '#5D4037', fontWeight: '600' } : {};
+
     const dBtn       = doodleMode ? { background: '#FFFDE7', border: '1.5px dashed #8D6E63', boxShadow: '2px 3px 0 #C8A96E', color: '#3E2723', borderRadius: '8px', transition: 'opacity 0.1s ease' } : {};
     const dImageRing = doodleMode ? { background: 'none', boxShadow: 'none', border: '3px dashed #C8A96E', padding: '5px' } : {};
 
@@ -1041,7 +1041,7 @@
     const vHeader    = voiceMode ? { background: 'linear-gradient(135deg, #1B5E20 0%, #4CAF50 100%)', boxShadow: '0 4px 20px rgba(27,94,32,0.4)' } : {};
     const vTitle     = voiceMode ? { color: '#E8F5E9' } : {};
     const vMenuBtn   = voiceMode ? { background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)', color: '#E8F5E9' } : {};
-    const vSubtitle  = voiceMode ? { color: '#2E7D32', fontWeight: '600' } : {};
+
     const vBtn       = voiceMode ? { background: 'linear-gradient(180deg, #C8E6C9 0%, #81C784 100%)', border: 'none', boxShadow: '0 5px 0 #2E7D32, 0 8px 24px rgba(0,0,0,0.12)', color: '#1B5E20' } : {};
     const vBtnSec    = voiceMode ? { background: 'linear-gradient(180deg, #FFF9C4 0%, #FDD835 100%)', boxShadow: '0 5px 0 #F9A825, 0 8px 24px rgba(0,0,0,0.12)', color: '#33691E' } : {};
     const vImageRing = voiceMode ? { background: 'conic-gradient(#66BB6A 0deg, #FDD835 90deg, #81C784 180deg, #FDD835 270deg, #66BB6A 360deg)', boxShadow: '0 0 50px rgba(76,175,80,0.5), 0 8px 36px rgba(0,0,0,0.15)' } : {};
@@ -1062,9 +1062,6 @@
               <img src={customImage || DEFAULT_IMAGE} alt="Divine" style={homeStyles.image} />
             </div>
           )}
-          <p style={{ ...homeStyles.subtitle, ...fSubtitle, ...dSubtitle, ...vSubtitle }}>
-            {voiceMode ? '🌿 कौन सा जाप करना है?' : 'कौन सा जाप करना है?'}
-          </p>
           <div style={{ ...homeStyles.btnGroup, ...mobileBtnGroup }}>
             <button className="home-btn" style={{ ...homeStyles.btn, ...fBtn, ...dBtn, ...vBtn, ...mobileBtn }} onClick={() => onSelect('harivansh')}>
               {voiceMode ? '🌳' : '🙏'}&nbsp; श्री हरिवंश जाप
