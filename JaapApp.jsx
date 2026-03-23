@@ -1011,6 +1011,10 @@
 
   // ==================== HOME SCREEN ====================
   const HomeScreen = ({ onSelect, focusMode, doodleMode, voiceMode, customImage, onSettingsOpen }) => {
+    const isDesktop = useIsDesktop();
+    // Mobile-only: smaller buttons with more gap to prevent misclicks
+    const mobileBtn = !isDesktop ? { padding: '11px 20px', fontSize: 'clamp(14px, 3.8vw, 16px)' } : {};
+    const mobileBtnGroup = !isDesktop ? { gap: 'clamp(18px, 5vw, 28px)', maxWidth: '290px' } : {};
     // Focus overrides — TRUE DARK MODE: deep blacks, minimal contrast, zero distraction
     const fContainer = focusMode ? { background: '#121212' } : {};
     const fHeader    = focusMode ? { background: '#1A1A1A', color: '#E0E0E0', boxShadow: 'none' } : {};
@@ -1058,11 +1062,11 @@
           <p style={{ ...homeStyles.subtitle, ...fSubtitle, ...dSubtitle, ...vSubtitle }}>
             {voiceMode ? '🌿 कौन सा जाप करना है?' : 'कौन सा जाप करना है?'}
           </p>
-          <div style={homeStyles.btnGroup}>
-            <button className="home-btn" style={{ ...homeStyles.btn, ...fBtn, ...dBtn, ...vBtn }} onClick={() => onSelect('harivansh')}>
+          <div style={{ ...homeStyles.btnGroup, ...mobileBtnGroup }}>
+            <button className="home-btn" style={{ ...homeStyles.btn, ...fBtn, ...dBtn, ...vBtn, ...mobileBtn }} onClick={() => onSelect('harivansh')}>
               {voiceMode ? '🌳' : '🙏'}&nbsp; श्री हरिवंश जाप
             </button>
-            <button className="home-btn" style={{ ...homeStyles.btn, ...homeStyles.btnSecondary, ...fBtn, ...fBtnSec, ...dBtn, ...vBtnSec }} onClick={() => onSelect('radha')}>
+            <button className="home-btn" style={{ ...homeStyles.btn, ...homeStyles.btnSecondary, ...fBtn, ...fBtnSec, ...dBtn, ...vBtnSec, ...mobileBtn }} onClick={() => onSelect('radha')}>
               {voiceMode ? '🌸' : '🌸'}&nbsp; राधा जाप
             </button>
           </div>
@@ -1718,7 +1722,7 @@
   const homeStyles = {
     container: {
       display: 'flex', flexDirection: 'column',
-      height: '100vh', width: '100%',
+      height: '100dvh', minHeight: '-webkit-fill-available', width: '100%',
       fontFamily: "'Tiro Devanagari Sanskrit', 'Noto Sans Devanagari', 'Segoe UI', sans-serif",
       background: 'linear-gradient(160deg, #FFF8E1 0%, #FFF3E0 55%, #FFE0B2 100%)',
       overflow: 'hidden',
@@ -1778,7 +1782,7 @@
   const sharedStyles = {
     container: {
       display: 'flex', flexDirection: 'column',
-      height: '100vh', width: '100%',
+      height: '100dvh', minHeight: '-webkit-fill-available', width: '100%',
       fontFamily: "'Tiro Devanagari Sanskrit', 'Noto Sans Devanagari', 'Segoe UI', sans-serif",
       background: 'linear-gradient(160deg, #FFF8E1 0%, #FFF3E0 55%, #FFE0B2 100%)',
       overflow: 'hidden', position: 'relative',
