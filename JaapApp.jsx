@@ -1,5 +1,4 @@
-  // React is loaded globally via CDN in index.html
-  const { useState, useEffect, useRef, useCallback, useMemo } = React;
+  import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
   // ==================== GLOBAL STYLES (animations, pseudo-selectors) ====================
   const GlobalStyles = () => (
@@ -134,6 +133,30 @@
     `}</style>
   );
 
+  // Desktop detection hook — shows keyboard hints only on devices with hover + fine pointer
+  const useIsDesktop = () => {
+    const [isDesktop, setIsDesktop] = useState(() =>
+      typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches
+    );
+    useEffect(() => {
+      const mq = window.matchMedia('(hover: hover) and (pointer: fine)');
+      const handler = (e) => setIsDesktop(e.matches);
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    }, []);
+    return isDesktop;
+  };
+
+  // Keyboard hint badge (only rendered on desktop)
+  const KbdHint = ({ label }) => (
+    <span style={{
+      position: 'absolute', top: '-6px', right: '-6px',
+      background: 'rgba(0,0,0,0.55)', color: '#FFF', fontSize: '9px', fontWeight: '700',
+      padding: '2px 5px', borderRadius: '6px', lineHeight: 1, letterSpacing: '0.3px',
+      pointerEvents: 'none', fontFamily: 'system-ui, sans-serif',
+    }}>{label}</span>
+  );
+
   const ProgressBar = ({ current, total, focusMode, doodleMode, voiceMode }) => {
     const trackBg = focusMode ? '#1E1E1E' : voiceMode ? 'rgba(76,175,80,0.12)' : doodleMode ? 'rgba(141,110,99,0.12)' : 'rgba(0,0,0,0.08)';
     const fillBg  = focusMode ? '#333' : voiceMode ? 'linear-gradient(90deg, #66BB6A, #FDD835)' : doodleMode ? 'linear-gradient(90deg, #8D6E63, #D4A96A)' : 'linear-gradient(90deg, #E65100, #FBC02D)';
@@ -150,7 +173,7 @@
     );
   };
 
-  const DEFAULT_IMAGE = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT_iFRyjl4ArAgbaR2H90KmMjbtaM85n_nFTw&s";
+  const DEFAULT_IMAGE = "default.jpg";
 
   // ==================== AUDIO FEEDBACK (Web Audio API) ====================
   let _audioCtx = null;
@@ -291,6 +314,35 @@
   const SettingsSheet = ({ open, onClose, focusMode, onFocusModeChange, doodleMode, onDoodleModeChange, voiceMode, onVoiceModeChange, customImage, onImageChange, soundMuted, onSoundMutedChange }) => {
     const [imgDraft, setImgDraft] = useState(customImage);
     const [showImgInput, setShowImgInput] = useState(false);
+    const fileInputRef = useRef(null);
+
+    const handleFileUpload = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        // Resize to fit localStorage (~5MB limit) by compressing via canvas
+        const img = new Image();
+        img.onload = () => {
+          const MAX = 1024;
+          let w = img.width, h = img.height;
+          if (w > MAX || h > MAX) {
+            const scale = MAX / Math.max(w, h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          const compressed = c.toDataURL('image/jpeg', 0.95);
+          onImageChange(compressed);
+          setImgDraft(compressed);
+          setShowImgInput(false);
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    };
 
     useEffect(() => {
       if (open) { setImgDraft(customImage); setShowImgInput(false); }
@@ -368,6 +420,13 @@
                 onClick={() => { if (imgDraft.trim()) { onImageChange(imgDraft.trim()); setShowImgInput(false); } }}>
                 लगाएं
               </button>
+              <span style={{ textAlign: 'center', fontSize: '12px', color: '#999', margin: '4px 0' }}>या</span>
+              <button style={{ ...settingsStyles.applyBtn, background: 'linear-gradient(180deg, #E1BEE7 0%, #CE93D8 100%)', color: '#4A148C' }}
+                onClick={() => fileInputRef.current?.click()}>
+                📁 फ़ोन से चुनें
+              </button>
+              <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={handleFileUpload} />
             </div>
           )}
 
@@ -646,8 +705,21 @@
     );
     const [status, setStatus] = useState('idle');
     const [errorText, setErrorText] = useState('');
+    const [autoContinue, setAutoContinue] = useState(() =>
+      localStorage.getItem('voice_auto_continue') === 'true'
+    );
     const recognitionRef = useRef(null);
+    const autoContinueRef = useRef(autoContinue);
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    // Keep ref in sync so callbacks see latest value
+    useEffect(() => { autoContinueRef.current = autoContinue; }, [autoContinue]);
+
+    const toggleAutoContinue = () => {
+      const next = !autoContinue;
+      setAutoContinue(next);
+      localStorage.setItem('voice_auto_continue', String(next));
+    };
 
     const DISPLAY_NAME = targetName === 'radha' ? 'राधा' : 'श्री हरिवंश';
 
@@ -723,8 +795,13 @@
           const hit = alts.find(a => checkMatch(a.transcript));
           if (hit) {
             cellFeedback(0); // Voice mode cell feedback
-            setStatus('idle');
             onSuccess(null);
+            // Auto-continue: restart listening after a short delay
+            if (autoContinueRef.current) {
+              setTimeout(() => startListening(), 600);
+            } else {
+              setStatus('idle');
+            }
           } else {
             setErrorText(alts[0].transcript);
             setStatus('error');
@@ -750,6 +827,20 @@
         r.start();
       }, 800);
     };
+
+    const isDesktop = useIsDesktop();
+    // Space key toggles mic on desktop
+    useEffect(() => {
+      const onKey = (e) => {
+        if (e.code === 'Space') {
+          e.preventDefault();
+          if (status === 'listening') stopRecognition();
+          else if (status === 'idle' || status === 'error') startListening();
+        }
+      };
+      window.addEventListener('keydown', onKey);
+      return () => window.removeEventListener('keydown', onKey);
+    }, [status]);
 
     if (!SR) return (
       <div style={voiceStyles.wrapper}>
@@ -809,9 +900,24 @@
             ...voiceStyles.micBtn,
             ...(isListening ? voiceStyles.micActive : {}),
             ...(isReady ? voiceStyles.micReady : {}),
+            position: 'relative',
           }}
           onClick={isListening ? stopRecognition : isReady ? undefined : startListening}
-        >{isListening ? '⏹' : '🎙'}</button>
+        >{isListening ? '⏹' : '🎙'}{isDesktop && <KbdHint label="Space" />}</button>
+        {/* Auto-continue toggle */}
+        <button onClick={toggleAutoContinue} style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '6px 14px', borderRadius: '20px', border: '1.5px solid',
+          borderColor: autoContinue ? '#2E7D32' : '#A5D6A7',
+          background: autoContinue ? 'rgba(46,125,50,0.12)' : 'rgba(76,175,80,0.04)',
+          color: autoContinue ? '#1B5E20' : '#4CAF50',
+          fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+          fontFamily: "'Tiro Devanagari Sanskrit', 'Noto Sans Devanagari', sans-serif",
+          transition: 'all 0.2s ease',
+        }}>
+          <span style={{ fontSize: '14px' }}>{autoContinue ? '🔄' : '⏸'}</span>
+          {autoContinue ? 'ऑटो जारी: चालू' : 'ऑटो जारी: बंद'}
+        </button>
         {status === 'error' && (
           <div style={voiceStyles.errorBox}>
             <span style={voiceStyles.errorText}>सुना: "{errorText}"</span>
@@ -965,6 +1071,7 @@
 
   // ==================== HARIVANSH JAAP ====================
   const HarivanshJaap = ({ onBack, focusMode, doodleMode, voiceMode }) => {
+    const isDesktop = useIsDesktop();
     const { onTouchStart, onTouchMove, onTouchEnd, SwipeIndicator } = useSwipeBack(onBack);
     const [currentCellIndex, setCurrentCellIndex] = useState(() =>
       Number(localStorage.getItem('harivansh_jaap_count')) || 0
@@ -1033,10 +1140,13 @@
     };
     useEffect(() => {
       const onKey = (e) => {
-        if (doodleMode || voiceMode) return;
-        const idx = parseInt(e.key) - 1;
-        if (idx >= 0 && idx < HARIVANSH_BUTTONS.length) {
-          handleInputRef.current(HARIVANSH_BUTTONS[idx].id);
+        if (doodleMode) return;
+        // Number keys for normal/focus mode buttons
+        if (!voiceMode) {
+          const idx = parseInt(e.key) - 1;
+          if (idx >= 0 && idx < HARIVANSH_BUTTONS.length) {
+            handleInputRef.current(HARIVANSH_BUTTONS[idx].id);
+          }
         }
       };
       window.addEventListener('keydown', onKey);
@@ -1198,9 +1308,7 @@
                 style={cellStyle(isCurrent, isDone)}
               >
                 {!focusMode && <MilestoneBadge cellIdx={cellIdx} />}
-                {isDone && completedImages[cellIdx]
-                  ? <img src={completedImages[cellIdx]} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: 0.85 }} />
-                  : <div style={sharedStyles.wordWrapper}>
+                {<div style={sharedStyles.wordWrapper}>
                       {HARIVANSH_SEQUENCE.map((part, pIdx) => {
                         if (part === " ") return <span key={pIdx} style={{ width: '5px' }} />;
                         const isPartDone = isDone || (isCurrent && pIdx < currentLetterIndex);
@@ -1224,12 +1332,12 @@
           ? <VoiceCanvas onSuccess={handleDoodleSuccess} targetName="harivansh" />
           : <div style={{ ...sharedStyles.footer, ...fFooter }}>
               {focusMode && <BreathingGuide />}
-              {HARIVANSH_BUTTONS.map((btn) => {
+              {HARIVANSH_BUTTONS.map((btn, btnIdx) => {
                 const isNext = btn.id === HARIVANSH_SEQUENCE[currentLetterIndex];
                 return (
                   <button key={btn.id} className="jaap-btn" onClick={() => handleInput(btn.id)}
-                    style={btnStyle(isNext)}
-                  >{btn.label}</button>
+                    style={{ ...btnStyle(isNext), position: 'relative' }}
+                  >{btn.label}{isDesktop && <KbdHint label={btnIdx + 1} />}</button>
                 );
               })}
             </div>
@@ -1244,6 +1352,7 @@
 
   // ==================== RADHA JAAP ====================
   const RadhaJaap = ({ onBack, focusMode, doodleMode, voiceMode }) => {
+    const isDesktop = useIsDesktop();
     const { onTouchStart: rTouchStart, onTouchMove: rTouchMove, onTouchEnd: rTouchEnd, SwipeIndicator: RSwipeIndicator } = useSwipeBack(onBack);
     const [currentCellIndex, setCurrentCellIndex] = useState(() =>
       Number(localStorage.getItem('radha_jaap_count')) || 0
@@ -1309,10 +1418,12 @@
     };
     useEffect(() => {
       const onKey = (e) => {
-        if (doodleMode || voiceMode) return;
-        const idx = parseInt(e.key) - 1;
-        if (idx >= 0 && idx < RADHA_BUTTONS.length) {
-          handleInputRef.current(RADHA_BUTTONS[idx].id);
+        if (doodleMode) return;
+        if (!voiceMode) {
+          const idx = parseInt(e.key) - 1;
+          if (idx >= 0 && idx < RADHA_BUTTONS.length) {
+            handleInputRef.current(RADHA_BUTTONS[idx].id);
+          }
         }
       };
       window.addEventListener('keydown', onKey);
@@ -1486,8 +1597,8 @@
                 style={cellStyle(isCurrent, isDone)}
               >
                 {!focusMode && <MilestoneBadge cellIdx={cellIdx} />}
-                {isDone && completedImages[cellIdx]
-                  ? <img src={completedImages[cellIdx]} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: 0.85 }} />
+                {false /* was: completedImages — now always render text for consistent cells */
+                  ? null
                   : <div style={{ ...sharedStyles.wordWrapper, fontSize: 'clamp(18px, 5vw, 24px)', gap: '3px' }}>
                       {/* Render full syllables so the matra is never an orphan (no dotted-circle placeholder) */}
                       <span style={{ fontWeight: 'bold', transition: 'color 0.2s ease', color: syllableColor(isDone, isCurrent, 0, currentLetterIndex) }}>रा</span>
@@ -1504,12 +1615,12 @@
           ? <VoiceCanvas onSuccess={handleDoodleSuccess} targetName="radha" />
           : <div style={{ ...sharedStyles.footer, ...fFooter }}>
               {focusMode && <BreathingGuide />}
-              {RADHA_BUTTONS.map((btn) => {
+              {RADHA_BUTTONS.map((btn, btnIdx) => {
                 const isNext = btn.id === RADHA_SEQUENCE[currentLetterIndex];
                 return (
                   <button key={btn.id} className="jaap-btn" onClick={() => handleInput(btn.id)}
-                    style={btnStyle(isNext)}
-                  >{btn.label}</button>
+                    style={{ ...btnStyle(isNext), position: 'relative' }}
+                  >{btn.label}{isDesktop && <KbdHint label={btnIdx + 1} />}</button>
                 );
               })}
             </div>
@@ -1636,7 +1747,7 @@
       boxShadow: '0 0 50px rgba(251,192,45,0.6), 0 8px 36px rgba(0,0,0,0.2)',
     },
     image: {
-      width: 'clamp(150px, 44vw, 215px)', height: 'clamp(150px, 44vw, 215px)',
+      width: 'clamp(210px, 60vw, 300px)', height: 'clamp(210px, 60vw, 300px)',
       objectFit: 'cover', borderRadius: '50%', display: 'block',
       border: '4px solid #FFF8E1',
     },
@@ -1644,19 +1755,20 @@
       fontSize: 'clamp(13px, 3.8vw, 16px)', color: '#6D4C41',
       fontWeight: '500', letterSpacing: '0.5px', textAlign: 'center', margin: 0
     },
-    btnGroup: { display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', alignItems: 'center' },
+    btnGroup: { display: 'flex', flexDirection: 'column', gap: '14px', width: '100%', maxWidth: '320px' },
     btn: {
-      width: '100%', maxWidth: '340px', padding: '18px 24px',
-      fontSize: 'clamp(16px, 4.5vw, 20px)', fontWeight: 'bold', color: '#1A0A00',
+      padding: 'clamp(14px, 3.5vh, 20px) 24px',
+      fontSize: 'clamp(16px, 4.2vw, 20px)', fontWeight: 'bold', color: '#1A0A00',
       background: 'linear-gradient(180deg, #FFE57F 0%, #FFC107 100%)',
-      border: 'none', borderRadius: '16px', cursor: 'pointer',
-      boxShadow: '0 5px 0 #B8860B, 0 8px 24px rgba(0,0,0,0.12)',
+      border: 'none', borderRadius: '14px', cursor: 'pointer',
+      boxShadow: '0 6px 0 #B8860B, 0 10px 30px rgba(0,0,0,0.15)',
       touchAction: 'manipulation', letterSpacing: '0.5px',
-      transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+      transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+      textAlign: 'center', lineHeight: 1.3, width: '100%',
     },
     btnSecondary: {
       background: 'linear-gradient(180deg, #FFCCBC 0%, #FF7043 100%)',
-      boxShadow: '0 5px 0 #BF360C, 0 8px 24px rgba(0,0,0,0.12)',
+      boxShadow: '0 6px 0 #BF360C, 0 10px 30px rgba(0,0,0,0.15)',
     }
   };
 
@@ -1719,5 +1831,4 @@
     }
   };
 
-  // Expose globally for index.html to mount
-  window.JaapApp = App;
+  export default App;
