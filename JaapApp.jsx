@@ -1045,7 +1045,7 @@
       <div className={modeClass} style={{ ...homeStyles.container, ...fContainer, ...dContainer, ...vContainer }}>
         <div style={{ ...homeStyles.header, ...fHeader, ...dHeader, ...vHeader }}>
           <strong style={{ ...homeStyles.title, ...fTitle, ...dTitle, ...vTitle }}>
-            {voiceMode ? '🐦 नाम जाप' : '🙏 नाम जाप'}
+            नाम जाप
           </strong>
           <button style={{ ...homeStyles.menuBtn, ...fMenuBtn, ...dMenuBtn, ...vMenuBtn }} onClick={onSettingsOpen} aria-label="Settings">⋮</button>
         </div>
